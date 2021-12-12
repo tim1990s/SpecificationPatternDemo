@@ -16,7 +16,7 @@ namespace Infrastructure.Data
             modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         }
 
-        public DbSet<Company> companies { get; set; }
-        public DbSet<Employee> employees { get; }
+        public DbSet<Company> Companies { get; set; }
+        public DbSet<Employee> Employees { get; }
     }
 }

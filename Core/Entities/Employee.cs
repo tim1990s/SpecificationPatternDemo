@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Entities
 {
-    public class Employee
+    public class Employee:BaseEntity
     {
-        [Column("EmployeeId")]
-        public Guid Id { get; set; }
-
         public string Name { get; set; }
 
         public int Age { get; set; }

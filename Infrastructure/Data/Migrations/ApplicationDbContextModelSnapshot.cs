@@ -23,8 +23,7 @@ namespace Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CompanyId");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
@@ -37,7 +36,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("companies");
+                    b.ToTable("Companies");
 
                     b.HasData(
                         new
@@ -67,8 +66,7 @@ namespace Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("EmployeeId");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
@@ -86,7 +84,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("employees");
+                    b.ToTable("Employees");
 
                     b.HasData(
                         new

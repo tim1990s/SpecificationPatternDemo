@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20211212025101_CreateEntityAndMigration")]
+    [Migration("20211212050537_CreateEntityAndMigration")]
     partial class CreateEntityAndMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,8 +25,7 @@ namespace Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CompanyId");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
@@ -39,7 +38,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("companies");
+                    b.ToTable("Companies");
 
                     b.HasData(
                         new
@@ -69,8 +68,7 @@ namespace Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("EmployeeId");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
@@ -88,7 +86,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("employees");
+                    b.ToTable("Employees");
 
                     b.HasData(
                         new

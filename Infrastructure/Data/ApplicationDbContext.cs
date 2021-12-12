@@ -1,5 +1,5 @@
 ﻿using Core.Entities;
-using Infrastructure.SeedData;
+using Infrastructure.Data.SeedData;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Data

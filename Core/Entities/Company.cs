@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Collections.Generic;
 
 namespace Core.Entities
 {
-    public class Company:BaseEntity
+    public class Company : BaseEntity
     {
         public string Name { get; set; }
 

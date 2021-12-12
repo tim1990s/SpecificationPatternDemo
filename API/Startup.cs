@@ -1,3 +1,4 @@
+using API.Helpers;
 using Infrastructure.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -23,6 +24,8 @@ namespace API
 
             services.AddControllers();
             services.ConfigureSqlContext(Configuration);
+            services.AddApplicationServices();
+            services.AddAutoMapper(typeof(MappingProfiles));
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });

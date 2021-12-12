@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 
-namespace Infrastructure.SeedData
+namespace Infrastructure.Data.SeedData
 {
     public class CompanyConfiguration : IEntityTypeConfiguration<Company>
     {

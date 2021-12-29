@@ -30,6 +30,13 @@ namespace Infrastructure.Data.SeedData
                     Name = "Company Name 3",
                     Address = "Address 3",
                     Country = "Country 3"
+                },
+                new Company
+                {
+                    Id = new Guid("c9d4c053-49b6-410c-bc78-2d54a9991874"),
+                    Name = "Company Name 4",
+                    Address = "Address 4",
+                    Country = "Country 3"
                 });
         }
     }

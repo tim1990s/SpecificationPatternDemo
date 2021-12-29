@@ -192,4 +192,119 @@ public class ApplicationDbContext : DbContext
 }
 ```
 
+### 1.6 Add migrations
+
+Đứng tại vị trí của thư mục gốc của project ta thực hiện lệnh sau để add migrations
+Trong trường hợp này:
+- Connection string được đặt ở solution **API**
+- Các entity được nằm 
+
+```
+dotnet ef migrations add CreateMigration -p .\Infrastructure\ -s .\API\ -o Data/Migrations
+
+```
+
+![picture](./images/5.PNG)
+
+Trức khi thực hiện apply change xuống database ta nên kiểm tra lại các file được generated khi ta thực hiện việc add migration bên trên.
+
+Để apply các migration xuống database ta thực hiện lệnh sau
+
+```
+dotnet ef database update
+```
+![picture](./images/2.PNG)
+
+Để remove migrations, trước tiên ta cần drop database như sau:
+
+Từ thư mục gốc của project, thực hiện lệnh sau: 
+
+```
+dotnet ef database drop -p Infrastructure -s API
+```
+
+![picture](./images/3.PNG)
+
+Sau đó ta thực hiện remove migrations
+
+```
+dotnet ef migrations remove  -p .\Infrastructure\ -s .\API\
+
+```
+
+![picture](./images/4.PNG)
+
+Khi add migration và apply xuống DB thành công ta sẽ được kết quả như sau:
+
+![picture](./images/6.PNG)
+
+### 1.7 Adding the DTOs
+
+Trong solution **API** ta thêm folder tên là **Dtos** và thêm vào 2 classes sau:
+**Dto** là object mà ta sẽ trả về cho client thay vì ta dùng các entity của domain.
+
+**CompanyToReturnDto**
+
+```c#
+public class CompanyToReturnDto
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; }
+
+    public string Address { get; set; }
+
+    public string Country { get; set; }
+
+    public ICollection<EmployeeToReturnDto> Employees { get; set; }
+
+}
+```
+
+**EmployeeToReturnDto**
+
+```c#
+public class EmployeeToReturnDto
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; }
+
+    public int Age { get; set; }
+
+    public string Position { get; set; }
+
+    public string CompanyName { get; set; }
+}
+```
+
+### 1.8 Adding Automapper
+
+Trong solution **API** ta thêm vào nuget `AutoMapper.Extensions.Microsoft.DependencyInjection`
+
+Trong solution **API** ta tạo mới một folder tên là **Helpers** với class **MappingProfiles**, class này sẽ giúp ta thực hiện chỉ định việc mapping các entities với Auto mapper.
+
+```c#
+public class MappingProfiles : Profile
+{
+    public MappingProfiles()
+    {
+        CreateMap<Employee, EmployeeToReturnDto>()
+            .ForMember(d => d.Id, o => o.MapFrom(e => e.Id))
+            .ForMember(d => d.Name, o => o.MapFrom(e => e.Name))
+            .ForMember(d => d.Position, o => o.MapFrom(e => e.Position))
+            .ForMember(d => d.Age, o => o.MapFrom(e => e.Age))
+            .ForMember(d => d.CompanyName, o => o.MapFrom(e => e.Company.Name));
+
+        CreateMap<Company, CompanyToReturnDto>();
+    }
+}
+```
+
+Trong method **ConfigureServices** của **Startup.cs** ta thực hiện đăng ký service cho việc mapping như sau:
+
+```c#
+ services.AddAutoMapper(typeof(MappingProfiles));
+```
+
 ## 2. Apply the Generic repository and the specification pattern

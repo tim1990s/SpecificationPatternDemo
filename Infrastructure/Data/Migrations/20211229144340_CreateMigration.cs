@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-using System;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Infrastructure.Data.Migrations
 {
-    public partial class CreateEntityAndMigration : Migration
+    public partial class CreateMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -45,17 +45,13 @@ namespace Infrastructure.Data.Migrations
             migrationBuilder.InsertData(
                 table: "Companies",
                 columns: new[] { "Id", "Address", "Country", "Name" },
-                values: new object[] { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991870"), "Address 1", "Country 1", "Company Name 1" });
-
-            migrationBuilder.InsertData(
-                table: "Companies",
-                columns: new[] { "Id", "Address", "Country", "Name" },
-                values: new object[] { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991871"), "Address 2", "Country 2", "Company Name 2" });
-
-            migrationBuilder.InsertData(
-                table: "Companies",
-                columns: new[] { "Id", "Address", "Country", "Name" },
-                values: new object[] { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991873"), "Address 3", "Country 3", "Company Name 3" });
+                values: new object[,]
+                {
+                    { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991870"), "Address 1", "Country 1", "Company Name 1" },
+                    { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991871"), "Address 2", "Country 2", "Company Name 2" },
+                    { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991873"), "Address 3", "Country 3", "Company Name 3" },
+                    { new Guid("c9d4c053-49b6-410c-bc78-2d54a9991874"), "Address 4", "Country 3", "Company Name 4" }
+                });
 
             migrationBuilder.InsertData(
                 table: "Employees",

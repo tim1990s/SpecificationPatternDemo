@@ -12,6 +12,8 @@
 
 Tất cả các entities khác điều sẽ được thừa kế từ **BaseEntity** để có được property **Id**.
 
+![picture](./images/7.PNG)
+
 ```c#
 public class BaseEntity
 {
@@ -301,6 +303,28 @@ public class MappingProfiles : Profile
 }
 ```
 
+### 1.9 Adding Helper classes.
+
+Trong thư mục **Helpers** của project **API** ta thêm vào class `Pagination` để phục vụ cho việc phân trang cho các APIs trong application.
+
+```c#
+public class Pagination<T> where T : class
+{
+    public Pagination(int pageIndex, int pageSize, int count, IReadOnlyList<T> data)
+    {
+        PageIndex = pageIndex;
+        PageSize = pageSize;
+        Count = count;
+        Data = data;
+    }
+
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int Count { get; set; }
+    public IReadOnlyList<T> Data { get; set; }
+}
+```
+
 Trong method **ConfigureServices** của **Startup.cs** ta thực hiện đăng ký service cho việc mapping như sau:
 
 ```c#
@@ -308,3 +332,352 @@ Trong method **ConfigureServices** của **Startup.cs** ta thực hiện đăng 
 ```
 
 ## 2. Apply the Generic repository and the specification pattern
+
+### 2.1 Introduction Specification Pattern
+
+![picture](./images/8.PNG)
+
+### 2.2 Create Core members of the Specification Pattern
+
+Trong project **Core** tạo interface `ISpecification` trong thư mục **Specifications** 
+
+**2.2.1 ISpecification**
+
+```c#
+public interface ISpecification<T>
+{
+    Expression<Func<T, bool>> Criteria { get; }
+
+    List<Expression<Func<T, object>>> Includes { get; }
+
+    Expression<Func<T, object>> OrderBy { get; }
+
+    Expression<Func<T, object>> OrderByDescending { get; }
+
+    int Take { get; }
+
+    int Skip { get; }
+
+    bool IsPagingEnabled { get; }
+}
+```
+**2.2.2 BaseSpecifcation**
+
+Trong thư mục **Specifications** tạo tiếp class **BaseSpecifcation**
+
+```c#
+public class BaseSpecifcation<T> : ISpecification<T>
+{
+    public BaseSpecifcation()
+    {
+    }
+
+    public BaseSpecifcation(Expression<Func<T, bool>> criteria)
+    {
+        Criteria = criteria;
+    }
+
+    public Expression<Func<T, bool>> Criteria { get; }
+
+    public List<Expression<Func<T, object>>> Includes { get; } = new List<Expression<Func<T, object>>>();
+
+    public Expression<Func<T, object>> OrderBy { get; private set; }
+
+    public Expression<Func<T, object>> OrderByDescending { get; private set; }
+
+    public int Take { get; private set; }
+
+    public int Skip { get; private set; }
+
+    public bool IsPagingEnabled { get; private set; }
+
+    protected void AddInclude(Expression<Func<T, object>> includeExpression)
+    {
+        Includes.Add(includeExpression);
+    }
+
+    protected void AddOrderBy(Expression<Func<T, object>> orderByExpression)
+    {
+        OrderBy = orderByExpression;
+    }
+
+    protected void AddOrderByDescending(Expression<Func<T, object>> orderByDescExpression)
+    {
+        OrderByDescending = orderByDescExpression;
+    }
+
+    protected void ApplyPaging(int skip, int take)
+    {
+        Skip = skip;
+        Take = take;
+        IsPagingEnabled = true;
+    }
+}
+```
+
+**2.2.3 SpecificationEvaluator**
+
+Trong thư mục **Data** của project **Infrastructure** ta tạo class `SpecificationEvaluator`
+
+Ta thấy ở đây `TEntity` phải là một class kế thừ từ `BaseEntity`
+
+```c#
+public class SpecificationEvaluator<TEntity> where TEntity : BaseEntity
+{
+    public static IQueryable<TEntity> GetQuery(IQueryable<TEntity> inputQuery, ISpecification<TEntity> spec)
+    {
+        var query = inputQuery;
+
+        if (spec.Criteria != null)
+        {
+            query = query.Where(spec.Criteria);
+        }
+
+        if (spec.OrderBy != null)
+        {
+            query = query.OrderBy(spec.OrderBy);
+        }
+
+        if (spec.OrderByDescending != null)
+        {
+            query = query.OrderByDescending(spec.OrderByDescending);
+        }
+
+        if (spec.IsPagingEnabled)
+        {
+            query = query.Skip(spec.Skip).Take(spec.Take);
+        }
+
+        query = spec.Includes.Aggregate(query, (current, include) => current.Include(include));
+
+        return query;
+    }
+}
+```
+
+### 2.3 Create the generic repository and apply the Specification Pattern.
+
+Trong **Core** project ta tạo interface `IGenericRepository` trong thư mục **Interfaces** như sau:
+
+```c#
+public interface IGenericRepository<T> where T : BaseEntity
+{
+    Task<T> GetByIdAsync(Guid id);
+
+    Task<IReadOnlyList<T>> GetAllAsync();
+
+    Task<T> GetEntityWithSpect(ISpecification<T> spec);
+
+    Task<IReadOnlyList<T>> ListAsync(ISpecification<T> spec);
+
+    Task<int> CountAsync(ISpecification<T> spec);
+
+    void Add(T entity);
+
+    void Update(T entity);
+
+    void Delete(T entity);
+}
+```
+
+Tiếp tục ta tạo `GenericRepository` implement từ interface `IGenericRepository`.
+
+Ở đây, **T** có constrain phải là một class kế thừ từ `BaseEntity`.
+
+```c#
+public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
+{
+    private readonly ApplicationDbContext _context;
+
+    public GenericRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<int> CountAsync(ISpecification<T> spec)
+    {
+        return await ApplySpecification(spec).CountAsync();
+    }
+
+    public async Task<IReadOnlyList<T>> GetAllAsync()
+    {
+        return await _context.Set<T>().ToListAsync();
+    }
+
+    public async Task<T> GetByIdAsync(Guid id)
+    {
+        return await _context.Set<T>().FindAsync(id);
+    }
+
+    public async Task<T> GetEntityWithSpect(ISpecification<T> spec)
+    {
+        return await ApplySpecification(spec).FirstOrDefaultAsync();
+    }
+
+    public async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> spec)
+    {
+        var query = ApplySpecification(spec);
+        return await query.ToListAsync();
+    }
+
+    public void Add(T entity)
+    {
+        _context.Set<T>().Add(entity);
+    }
+
+    public void Update(T entity)
+    {
+        _context.Set<T>().Attach(entity);
+        _context.Entry(entity).State = EntityState.Modified;
+    }
+
+    public void Delete(T entity)
+    {
+        _context.Set<T>().Remove(entity);
+    }
+
+    private IQueryable<T> ApplySpecification(ISpecification<T> spec)
+    {
+        return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(), spec);
+    }
+}
+```
+
+Ta thực hiện việc đăng ký DI cho `GenericRepository`và `IGenericRepository` như sau:
+
+Trong thư mục **Extensions** trong project **Infrastructure**, ta thêm vào một method `AddApplicationServices` cho class `ServiceExtension` như sau:
+
+```c#
+public static class ServiceExtension
+{
+    public static void ConfigureSqlContext(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDbContext<ApplicationDbContext>(opt
+            => opt.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Infrastructure")));
+    }
+
+    public static void AddApplicationServices(this IServiceCollection services)
+    {
+        services.AddScoped(typeof(IGenericRepository<>), (typeof(GenericRepository<>)));
+    }
+}
+```
+
+### 2.4 Apply the Specification Pattern to the Company entity.
+
+**CompanySpecParams**
+
+Trong thư mục **Specification** trong project **Core** ta tạo một class `CompanySpecParams`
+
+```c#
+public class CompanySpecParams
+{
+    private const int MaxPageSize = 50;
+    public int PageIndex { get; set; } = 1;
+
+    private int _pageSize = 2;
+    public int PageSize
+    {
+        get => _pageSize;
+        set => _pageSize = (value > MaxPageSize) ? MaxPageSize : value;
+    }
+
+    public string Sort { get; set; }
+    private string _search;
+    public string Search
+    {
+        get => _search;
+        set => _search = value.ToLower();
+    }
+}
+```
+
+**CompaniesWithFiltersForCountSpecification**
+
+```c#
+public class CompaniesWithFiltersForCountSpecification : BaseSpecifcation<Company>
+{
+    public CompaniesWithFiltersForCountSpecification(CompanySpecParams companySpecParams) : base(
+        x => (string.IsNullOrEmpty(companySpecParams.Search) || x.Name.ToLower().Contains(companySpecParams.Search)))
+    {
+    }
+}
+```
+
+**CompanyWithEmployeeSpecification**
+
+```c#
+public class CompanyWithEmployeeSpecification : BaseSpecifcation<Company>
+{
+    public CompanyWithEmployeeSpecification(CompanySpecParams companySpecParams) : base(x =>
+    (string.IsNullOrEmpty(companySpecParams.Search) || x.Name.ToLower().Contains(companySpecParams.Search)))
+    {
+        AddInclude(c => c.Employees);
+        ApplyPaging(companySpecParams.PageSize * (companySpecParams.PageIndex - 1), companySpecParams.PageSize);
+
+        if (!string.IsNullOrEmpty(companySpecParams.Sort))
+        {
+            switch (companySpecParams.Sort)
+            {
+                case "nameAsc":
+                    AddOrderBy(c => c.Name);
+                    break;
+                case "nameDesc":
+                    AddOrderByDescending(c => c.Name);
+                    break;
+                default:
+                    AddOrderBy(n => n.Name);
+                    break;
+            }
+        }
+    }
+
+    public CompanyWithEmployeeSpecification(Guid id) : base(c => c.Id == id)
+    {
+        AddInclude(e => e.Employees);
+    }
+}
+```
+
+**CompaniesController**
+
+```c#
+[ApiController]
+[Route("api/companies")]
+public class CompaniesController : ControllerBase
+{
+    private readonly IGenericRepository<Company> _companyRepository;
+    private readonly IGenericRepository<Employee> _employeeRepository;
+    private readonly IMapper _mapper;
+
+    public CompaniesController(IGenericRepository<Company> companyRepo, IGenericRepository<Employee> employeeRepo, IMapper mapper)
+    {
+        _mapper = mapper;
+        _companyRepository = companyRepo;
+        _employeeRepository = employeeRepo;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<CompanyToReturnDto>>> GetCompanies([FromQuery] CompanySpecParams companyParams)
+    {
+        var spec = new CompanyWithEmployeeSpecification(companyParams);
+        var countSpec = new CompaniesWithFiltersForCountSpecification(companyParams);
+
+        var totalItems = await _companyRepository.CountAsync(countSpec);
+        var companies = await _companyRepository.ListAsync(spec);
+
+        var companiesToReturn = _mapper.Map<IReadOnlyList<CompanyToReturnDto>>(companies);
+
+        return Ok(new Pagination<CompanyToReturnDto>(companyParams.PageIndex, companyParams.PageSize, totalItems, companiesToReturn));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<CompanyToReturnDto>> GetCompany(Guid id)
+    {
+        var spec = new CompanyWithEmployeeSpecification(id);
+        var company = await _companyRepository.GetEntityWithSpect(spec);
+        if (company == null) return NotFound(HttpStatusCode.NotFound);
+        return _mapper.Map<CompanyToReturnDto>(company);
+    }
+}
+```
